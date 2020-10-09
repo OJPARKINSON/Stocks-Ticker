@@ -31,8 +31,8 @@ exports.handler = async (event) => {
         return { 
             xrpPrice: `£${xrpPrice}`, 
             cmcsaPrice: `£${convertedCmcsaPrice}`, 
-            xrpProf: `${StocksCalculator(process.env.XRPSELLPRICE, xrpPrice, 1000)}`, 
-            cmcsaProf: `${StocksCalculator(convertedCmcsaPrice, process.env.CMCSABUYPRICE, 330)}`
+            xrpProf: `${StocksCalculator(6, xrpPrice, 1000)}`, 
+            cmcsaProf: `${StocksCalculator(convertedCmcsaPrice, 27.26, 330)}`
         }
         // console.log(` XRP💸: ${StocksCalculator(6, xrpPrice, 1000)}`)
         // console.log(` Sharesave 💸: ${StocksCalculator(cmcsaPrice, 27.26, 330)}`)
