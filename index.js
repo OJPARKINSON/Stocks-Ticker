@@ -2,7 +2,7 @@ const jsdom = require('jsdom');
 const fetch = require('node-fetch');
 require('dotenv').config();
 
-// exports.handler = async (event) => {
+exports.handler = async (event) => {
     const StocksCalculator = (buyPrice, sellPrice, stockAmount) => 
         (buyPrice * stockAmount - sellPrice * stockAmount).toLocaleString('en-UK', { style: 'currency', currency: 'GBP' });
     
@@ -34,11 +34,10 @@ require('dotenv').config();
             xrpProf: `${StocksCalculator(process.env.XRPSELLPRICE, xrpPrice, 1000)}`, 
             cmcsaProf: `${StocksCalculator(convertedCmcsaPrice, process.env.CMCSABUYPRICE, 330)}`
         }
-    
         // console.log(` XRP💸: ${StocksCalculator(6, xrpPrice, 1000)}`)
         // console.log(` Sharesave 💸: ${StocksCalculator(cmcsaPrice, 27.26, 330)}`)
     }
      main()
       .then(response => console.log({ statusCode: 200, body: JSON.stringify(response) }))
         .catch(err => console.error(err));
-// };
+};
