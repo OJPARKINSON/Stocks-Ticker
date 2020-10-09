@@ -5,3 +5,5 @@ jspm_packages
 .serverless
 *.env
 env
+/node_modules
+.env
