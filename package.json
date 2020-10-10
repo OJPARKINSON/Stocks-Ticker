@@ -7,7 +7,6 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "dotenv": "^8.2.0",
     "jsdom": "^16.4.0",
     "node-fetch": "^2.6.1"
   }

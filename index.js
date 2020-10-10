@@ -1,43 +1,53 @@
 const jsdom = require('jsdom');
 const fetch = require('node-fetch');
 
-exports.handler = async (event) => {
-    const StocksCalculator = (buyPrice, sellPrice, stockAmount) => 
-        (buyPrice * stockAmount - sellPrice * stockAmount).toLocaleString('en-UK', { style: 'currency', currency: 'GBP' });
-    
-    const stockPrice = (stockCode) => 
-        fetch(`https://in.finance.yahoo.com/quote/${stockCode}`)
-            .then(response => response.text())
-            .then(pageBody => new jsdom.JSDOM(pageBody, 'text/html'))
-            .then(({window}) => parseFloat(window.document.querySelector('span[data-reactid="32"]').textContent.replace(/,/g, '')))
-            .then(bonk => { console.log(bonk); return bonk})
-            .catch(err => console.error(err));
+exports.handler = async (event, context, callback) => {
+    const StocksCalculator = (buyPrice, sellPrice, stockAmount) => {
+        return (buyPrice * stockAmount - sellPrice * stockAmount).toLocaleString('en-UK', { style: 'currency', currency: 'GBP' });
+    }
 
-    const currencyConverter = (stockPrice) => 
-        fetch(`https://finance.yahoo.com/quote/USDGBP=X`)
-            .then(response => response.text())
-            .then(pageBody => new jsdom.JSDOM(pageBody, 'text/html'))
-            .then(({window}) => parseFloat(window.document.querySelector('span[data-reactid="32"]').textContent.replace(/,/g, '')))
-            .then(USD_GBP => USD_GBP * stockPrice)
-            .then(ukStockPrice => parseInt(ukStockPrice.toFixed(2)))
-            .catch(err => console.error(err));
-    
+    const stockPrice = async (stockCode) => {
+        const data = await fetch(`https://in.finance.yahoo.com/quote/${stockCode}`)
+        const pageBody = await data.text()
+        const dom = await new jsdom.JSDOM(await pageBody, 'text/html');
+        return parseFloat(await dom.window.document.querySelector('span[data-reactid="32"]').textContent.replace(/,/g, ''))
+    }
+
+    const currencyConverter = async (stockPrice) => {
+        const data = await fetch(`https://in.finance.yahoo.com/quote/USDGBP=X`)
+        const pageBody = await data.text()
+        const { window } = await new jsdom.JSDOM(await pageBody, 'text/html');
+        const exchangeRate = parseFloat(await window.document.querySelector('span[data-reactid="32"]').textContent.replace(/,/g, ''));
+        return parseInt((await exchangeRate * stockPrice).toFixed(2))
+    }
+
     const main = async () => {
         const xrpPrice = await stockPrice('XRP-GBP');
         const cmcsaPrice = await stockPrice('CMCSA');
         const convertedCmcsaPrice = await currencyConverter(cmcsaPrice);
 
-        return { 
-            xrpPrice: `£${xrpPrice}`, 
-            cmcsaPrice: `£${convertedCmcsaPrice}`, 
-            xrpProf: `${StocksCalculator(6, xrpPrice, 1000)}`, 
-            cmcsaProf: `${StocksCalculator(convertedCmcsaPrice, 27.26, 330)}`
-        }
-
-        // console.log(` XRP💸: ${StocksCalculator(6, xrpPrice, 1000)}`)
-        // console.log(` Sharesave 💸: ${StocksCalculator(cmcsaPrice, 27.26, 330)}`)
+        return ({ 
+            statusCode: 200, 
+            body: JSON.stringify({ 
+                xrpPrice: `£${await xrpPrice}`, 
+                cmcsaPrice: `£${await convertedCmcsaPrice}`, 
+                xrpProf: `${await StocksCalculator(6, await xrpPrice, 1000)}`, 
+                cmcsaProf: `${await StocksCalculator(await convertedCmcsaPrice, 27.26, 330)}`
+            })
+        })
     }
-     main()
-      .then(response => console.log({ statusCode: 200, body: JSON.stringify(response) }))
-        .catch(err => console.error(err));
+
+    try {
+        return main();
+    } catch(error) {
+        return {
+            "statusCode": error.statusCode,
+            "headers": {
+              "Content-Type": "text/plain",
+              "x-amzn-ErrorType": error.code
+            },
+            "isBase64Encoded": false,
+            "body": error.code + ": " + error.message
+          }
+    }
 };
