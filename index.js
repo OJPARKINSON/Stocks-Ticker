@@ -14,11 +14,11 @@ exports.handler = async (event, context, callback) => {
     }
 
     const currencyConverter = async (stockPrice) => {
-        const data = await fetch(`https://in.finance.yahoo.com/lookup?s=USDGBP`)
-        const pageBody = await data.text()
+        const data = await fetch(`https://in.finance.yahoo.com/quote/USDGBP=X`);
+        const pageBody = await data.text();
         const { window } = await new jsdom.JSDOM(await pageBody, 'text/html');
-        const exchangeRate = parseFloat(await window.document.querySelector('td[data-reactid="59"]').textContent.replace(/,/g, ''));
-        return parseFloat((await exchangeRate * stockPrice).toFixed(6))
+        const exchangeRate = parseFloat(await window.document.querySelector('span[data-reactid="32"]').textContent.replace(/,/g, '')); 
+        return parseFloat((await exchangeRate * stockPrice).toFixed(6));
     }
 
     const main = async () => {
