@@ -1,10 +1,8 @@
-const jsdom = require('jsdom');
 const fetch = require('node-fetch');
 var crypto = require('crypto');
 require('dotenv').config()
 
-var apiKey = process.env.apiKey;
-var apiSecret = process.env.apiSecret;
+var { apiKey, apiSec, token } = process.env;
 
 exports.handler = async (event, context, callback) => {
 
@@ -13,7 +11,7 @@ exports.handler = async (event, context, callback) => {
         var options = {
             method: 'GET',
             headers: {
-                'CB-ACCESS-SIGN': crypto.createHmac("sha256", apiSecret).update(timestamp + 'GET' + path).digest("hex"),
+                'CB-ACCESS-SIGN': crypto.createHmac("sha256", apiSec).update(timestamp + 'GET' + path).digest("hex"),
                 'CB-ACCESS-TIMESTAMP': timestamp,
                 'CB-ACCESS-KEY': apiKey,
                 'CB-VERSION': '2015-07-22'
@@ -21,28 +19,31 @@ exports.handler = async (event, context, callback) => {
         };
 
         return fetch(`https://api.coinbase.com/${path}`, options)
-            .then(res => res.json())
-            .then(json => json.data)
-            .then(data => data.native_balance ? data.native_balance.amount : data.amount);
+        .then(res => res.json())
+        .then(json => json.data)
     };
 
-    const stockPrice = async (stockCode) => {
-        const data = await fetch(`https://in.finance.yahoo.com/lookup?s=${stockCode}`)
-        const pageBody = await data.text()
-        const dom = await new jsdom.JSDOM(await pageBody, 'text/html');
-        return parseFloat(await dom.window.document.querySelector('td[data-reactid="59"]').textContent.replace(/,/g, ''))
+    const cmcsaRequest = async () => {
+        const options = "&types=quote,news,chart&range=1m&last=10"
+        return fetch(`https://cloud.iexapis.com/stable/stock/cmcsa/batch?token=${token}${options}`)
+            .then(res => res.json())
+            .then(json => json.quote.latestPrice)
     }
 
     const main = async () => {
-        const cmcsaPrice = await stockPrice('CMCSA') * process.env.averageGBP;
+        const cmcsaPrice = await cmcsaRequest();
+        const exchangeRate = await coinbaseRequest('/v2/exchange-rates?currency=USD')
+        const GPBCMCSA = exchangeRate.rates.GBP * cmcsaPrice
+        const xrpPrice  = await coinbaseRequest('/v2/prices/XRP-GBP/buy')
+        const portfolio = await coinbaseRequest('/v2/accounts/7524fa83-38cc-5a0e-a29b-ec9555d2657c')
 
         return ({
             statusCode: 200, 
             body: JSON.stringify({ 
-                xrpPrice: `£${await coinbaseRequest('/v2/prices/XRP-GBP/buy')}`,
-                xrpProf: `£${await coinbaseRequest('/v2/accounts/7524fa83-38cc-5a0e-a29b-ec9555d2657c')}`,  
-                cmcsaPrice: `£${cmcsaPrice}`,
-                cmcsaProf: `${(cmcsaPrice * 330 - 27.26 * 330).toLocaleString('en-UK',{style:'currency',currency:'GBP'})}`
+                xrpPrice: `£${xrpPrice.amount}`,
+                xrpProf: `£${portfolio.native_balance.amount}`,  
+                cmcsaPrice: `${GPBCMCSA.toLocaleString('en-UK',{style:'currency',currency:'GBP'})}`,
+                cmcsaProf: `${(GPBCMCSA * 330 - 27.26 * 330).toLocaleString('en-UK',{style:'currency',currency:'GBP'})}`
             })
         })
     }
