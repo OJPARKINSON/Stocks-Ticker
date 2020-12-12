@@ -2,7 +2,7 @@ const fetch = require('node-fetch');
 var crypto = require('crypto');
 require('dotenv').config()
 
-var { apiKey, apiSec, token } = process.env;
+var { apiKey, apiSec, token, acountID } = process.env;
 
 exports.handler = async (event, context, callback) => {
 
@@ -27,22 +27,22 @@ exports.handler = async (event, context, callback) => {
         const options = "&types=quote,news,chart&range=1m&last=10"
         return fetch(`https://cloud.iexapis.com/stable/stock/cmcsa/batch?token=${token}${options}`)
             .then(res => res.json())
-            .then(json => json.quote.latestPrice)
     }
 
     const main = async () => {
         const cmcsaPrice = await cmcsaRequest();
         const exchangeRate = await coinbaseRequest('/v2/exchange-rates?currency=USD')
-        const GPBCMCSA = exchangeRate.rates.GBP * cmcsaPrice
+        const GPBCMCSA = exchangeRate.rates.GBP * cmcsaPrice.quote.latestPrice
         const xrpPrice  = await coinbaseRequest('/v2/prices/XRP-GBP/buy')
-        const portfolio = await coinbaseRequest('/v2/accounts/7524fa83-38cc-5a0e-a29b-ec9555d2657c')
+        const portfolio = await coinbaseRequest(`/v2/accounts/${acountID}`)
 
         return ({
             statusCode: 200, 
             body: JSON.stringify({ 
+                cmcsaChart: cmcsaPrice.chart,
                 xrpPrice: `£${xrpPrice.amount}`,
                 xrpProf: `£${portfolio.native_balance.amount}`,  
-                cmcsaPrice: `${GPBCMCSA.toLocaleString('en-UK',{style:'currency',currency:'GBP'})}`,
+                cmcsaPrice: `$${cmcsaPrice.quote.latestPrice}`,
                 cmcsaProf: `${(GPBCMCSA * 330 - 27.26 * 330).toLocaleString('en-UK',{style:'currency',currency:'GBP'})}`
             })
         })
