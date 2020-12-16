@@ -24,7 +24,7 @@ exports.handler = async (event, context, callback) => {
     };
 
     const cmcsaRequest = async () => {
-        const options = "&types=quote,news,chart&range=1m&last=10"
+        const options = "&types=quote,chart"
         return fetch(`https://cloud.iexapis.com/stable/stock/cmcsa/batch?token=${token}${options}`)
             .then(res => res.json())
     }
