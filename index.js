@@ -24,7 +24,7 @@ exports.handler = async (event, context, callback) => {
     };
 
     const cmcsaRequest = async () => {
-        const options = "&types=quote,chart"
+        const options = "&types=quote"
         return fetch(`https://cloud.iexapis.com/stable/stock/cmcsa/batch?token=${token}${options}`)
             .then(res => res.json())
     }
@@ -39,7 +39,6 @@ exports.handler = async (event, context, callback) => {
         return ({
             statusCode: 200, 
             body: JSON.stringify({ 
-                cmcsaChart: cmcsaPrice.chart,
                 xrpPrice: `£${xrpPrice.amount}`,
                 xrpProf: `£${portfolio.native_balance.amount}`,  
                 cmcsaPrice: cmcsaPrice.quote.latestPrice.toLocaleString('en-UK',{style:'currency',currency:'USD'}),
