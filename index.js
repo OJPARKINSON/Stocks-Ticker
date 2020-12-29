@@ -42,8 +42,8 @@ exports.handler = async (event, context, callback) => {
                 cmcsaChart: cmcsaPrice.chart,
                 xrpPrice: `£${xrpPrice.amount}`,
                 xrpProf: `£${portfolio.native_balance.amount}`,  
-                cmcsaPrice: `$${cmcsaPrice.quote.latestPrice}`,
-                cmcsaProf: `${(GPBCMCSA * 330 - 27.26 * 330).toLocaleString('en-UK',{style:'currency',currency:'GBP'})}`
+                cmcsaPrice: cmcsaPrice.quote.latestPrice.toLocaleString('en-UK',{style:'currency',currency:'USD'}),
+                cmcsaProf: (GPBCMCSA * 330 - 27.26 * 330).toLocaleString('en-UK',{style:'currency',currency:'GBP'})
             })
         })
     }
