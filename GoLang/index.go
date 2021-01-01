@@ -36,7 +36,14 @@ type iexapiResp struct {
 }
 
 func getEnv() {
-	err := godotenv.Load(".env")
+	env := os.Getenv("NODE_ENV")
+	var err error
+	if "Production" == env {
+		err = godotenv.Load(".env")
+	} else {
+		err = godotenv.Load("../.env")
+
+	}
 	if err != nil {
 		log.Fatalf("Error loading .env file")
 	}
