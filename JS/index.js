@@ -1,6 +1,7 @@
 const fetch = require('node-fetch');
 var crypto = require('crypto');
-require('dotenv').config()
+if (process.env.NODE_ENV === "Production") require('dotenv').config()
+else require('dotenv').config({ path: '../.env' })
 
 var { apiKey, apiSec, token, acountID } = process.env;
 

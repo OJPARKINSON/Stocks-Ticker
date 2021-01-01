@@ -25,6 +25,8 @@ out/
 coverage
 *.lcov
 build
+*.env
+.env
 
 # nyc test coverage
 .nyc_output
