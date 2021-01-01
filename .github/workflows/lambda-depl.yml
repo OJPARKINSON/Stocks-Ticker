@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - name: Install dependencies, Build application and Zip dist folder contents
-        run: npm i --prefix ./JS && cd ./JS && zip bundle.zip index.js -r node_modules 
+        run: npm i --prefix ./JS && cd ./JS && zip bundle.zip index.js -r node_modules && mv bundle.zip ../
       - name: deploy zip to aws lambda
         uses: appleboy/lambda-action@master
         with:
