@@ -38,11 +38,10 @@ type iexapiResp struct {
 func getEnv() {
 	env := os.Getenv("NODE_ENV")
 	var err error
-	if "Production" == env {
+	if env == "Production" {
 		err = godotenv.Load(".env")
 	} else {
 		err = godotenv.Load("../.env")
-
 	}
 	if err != nil {
 		log.Fatalf("Error loading .env file")
@@ -122,7 +121,7 @@ func main() {
 	UKcmcsa := exchangeRate * cmcsa
 
 	fmt.Printf("XRP Price: £%s \n", xrpPrice.Data.Amount)
-	fmt.Printf("Comcast Price: £%.2f \n", UKcmcsa)
-	fmt.Printf("Portfolio: £%s \n", portfolio.Data.Native_Balance.Amount)
-	fmt.Printf("Comcast Profit: £%.2f \n", UKcmcsa*amount-sellPrice*amount)
+	fmt.Printf("Comcast Price: $%.2f \n", cmcsa)
+	fmt.Printf("📈 Portfolio: £%s \n", portfolio.Data.Native_Balance.Amount)
+	fmt.Printf("📈 Comcast Profit: £%.2f \n", UKcmcsa*amount-sellPrice*amount)
 }
