@@ -34,19 +34,18 @@ exports.handler = async (event, context, callback) => {
         const cmcsaPrice = await cmcsaRequest();
         const exchangeRate = await coinbaseRequest('/v2/exchange-rates?currency=USD')
         const GPBCMCSA = exchangeRate.rates.GBP * cmcsaPrice.quote.latestPrice
-        const xrpPrice  = await coinbaseRequest('/v2/prices/XRP-GBP/buy')
         const portfolio = await coinbaseRequest(`/v2/accounts/${acountID}`)
 
         return ({
             statusCode: 200, 
-            body: JSON.stringify({ 
-                xrpPrice: `£${xrpPrice.amount}`,
+            body: JSON.stringify({
                 xrpProf: `£${portfolio.native_balance.amount}`,  
                 cmcsaPrice: cmcsaPrice.quote.latestPrice.toLocaleString('en-UK',{style:'currency',currency:'USD'}),
                 cmcsaProf: (GPBCMCSA * 330 - 27.26 * 330).toLocaleString('en-UK',{style:'currency',currency:'GBP'})
             })
         })
     }
+}
 
     try {
         return main();
