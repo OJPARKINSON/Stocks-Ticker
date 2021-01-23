@@ -6,7 +6,6 @@ else require('dotenv').config({ path: '../.env' })
 var { apiKey, apiSec, token, acountID } = process.env;
 
 exports.handler = async (event, context, callback) => {
-
     const coinbaseRequest = async (path) => {
         var timestamp = Math.floor(Date.now() / 1000);
         var options = {
@@ -45,7 +44,6 @@ exports.handler = async (event, context, callback) => {
             })
         })
     }
-}
 
     try {
         return main();
