@@ -96,13 +96,11 @@ func iexapi() float64 {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	respJSO := iexapiResp{}
 	json.Unmarshal([]byte(body), &respJSO)
 
@@ -120,7 +118,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	UKcmcsa := exchangeRate * cmcsa
 
 	return events.APIGatewayProxyResponse{
-		Body:       fmt.Sprintf("Comcast Price: $%.2f \n 📈 Portfolio: £%s \n 📈 Comcast Profit: £%.2f \n", cmcsa, portfolio.Data.Native_Balance.Amount, UKcmcsa*amount-sellPrice*amount),
+		Body:       fmt.Sprintf("{Comcast Price: $%.2f, Portfolio: £%s, Comcast Profit: £%.2f}", cmcsa, portfolio.Data.Native_Balance.Amount, UKcmcsa*amount-sellPrice*amount),
 		StatusCode: 200,
 	}, nil
 }
