@@ -18,7 +18,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type Resps struct {
+type Response struct {
 	Data struct {
 		Currency       string `json:"currency"`
 		Amount         string `json:"amount"`
@@ -59,7 +59,7 @@ func auths(req *http.Request, params string) {
 	req.Header.Add("CB-VERSION", "2015-07-22")
 }
 
-func Request(url string, params string) Resps {
+func Request(url string, params string) Response {
 	client := &http.Client{Timeout: time.Second * 10}
 	req, err := http.NewRequest("GET", url+params, nil)
 	if err != nil {
@@ -79,7 +79,7 @@ func Request(url string, params string) Resps {
 	if err != nil {
 		log.Fatal(err)
 	}
-	respJSON := Resps{}
+	respJSON := Response{}
 	json.Unmarshal([]byte(body), &respJSON)
 	return respJSON
 }
