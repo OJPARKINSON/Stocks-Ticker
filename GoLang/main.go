@@ -59,7 +59,7 @@ func auths(req *http.Request, params string) {
 	req.Header.Add("CB-VERSION", "2015-07-22")
 }
 
-func coinbaseRequest(url string, params string) Resps {
+func Request(url string, params string) Resps {
 	client := &http.Client{Timeout: time.Second * 10}
 	req, err := http.NewRequest("GET", url+params, nil)
 	if err != nil {
@@ -90,10 +90,10 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	options := "&types=quote,chart"
 
 	var sellPrice, amount float64 = 27.26, 330.0
-	stringExchangeRate := coinbaseRequest("https://api.coinbase.com", "/v2/exchange-rates?currency=USD").Data.Rates.GBP
+	stringExchangeRate := Request("https://api.coinbase.com", "/v2/exchange-rates?currency=USD").Data.Rates.GBP
 	exchangeRate, _ := strconv.ParseFloat(stringExchangeRate, 32)
-	portfolio := coinbaseRequest("https://api.coinbase.com", "/v2/accounts/"+os.Getenv("acountID")).Data.Native_Balance.Amount
-	cmcsa := coinbaseRequest("https://cloud.iexapis.com/stable/stock/cmcsa/batch?token=", token+options)
+	portfolio := Request("https://api.coinbase.com", "/v2/accounts/"+os.Getenv("acountID")).Data.Native_Balance.Amount
+	cmcsa := Request("https://cloud.iexapis.com/stable/stock/cmcsa/batch?token=", token+options)
 	UKcmcsa := exchangeRate * cmcsa.Quote.LatestPrice
 
 	return events.APIGatewayProxyResponse{
