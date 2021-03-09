@@ -44,7 +44,7 @@ func getEnv() {
 	}
 }
 
-func auths(req *http.Request, params string) {
+func Authentication(req *http.Request, params string) {
 	apiSec := os.Getenv("apiSec")
 	timestamp := fmt.Sprintf("%v", time.Now().Unix())
 	apiKey := os.Getenv("apiKey")
@@ -59,15 +59,15 @@ func auths(req *http.Request, params string) {
 	req.Header.Add("CB-VERSION", "2015-07-22")
 }
 
-func Request(url string, params string) Response {
+func Request(url string, route string, auth bool) Response {
 	client := &http.Client{Timeout: time.Second * 10}
-	req, err := http.NewRequest("GET", url+params, nil)
+	req, err := http.NewRequest("GET", url+route, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if url == "https://api.coinbase.com" {
-		auths(req, params)
+	if auth {
+		Authentication(req, route)
 	}
 
 	resp, err := client.Do(req)
@@ -80,24 +80,25 @@ func Request(url string, params string) Response {
 		log.Fatal(err)
 	}
 	respJSON := Response{}
-	json.Unmarshal([]byte(body), &respJSON)
+	json.Unmarshal(body, &respJSON)
 	return respJSON
 }
 
-func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func handler(events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	getEnv()
 	token := os.Getenv("token")
+	acountID := os.Getenv("acountID")
 	options := "&types=quote,chart"
 
-	var sellPrice, amount float64 = 27.26, 330.0
-	stringExchangeRate := Request("https://api.coinbase.com", "/v2/exchange-rates?currency=USD").Data.Rates.GBP
+	var sellPrice, amount = 27.26, 330.0
+	stringExchangeRate := Request("https://api.coinbase.com", "/v2/exchange-rates?currency=USD", true).Data.Rates.GBP
 	exchangeRate, _ := strconv.ParseFloat(stringExchangeRate, 32)
-	portfolio := Request("https://api.coinbase.com", "/v2/accounts/"+os.Getenv("acountID")).Data.Native_Balance.Amount
-	cmcsa := Request("https://cloud.iexapis.com/stable/stock/cmcsa/batch?token=", token+options)
+	portfolio := Request("https://api.coinbase.com", "/v2/accounts/"+acountID, true).Data.Native_Balance.Amount
+	cmcsa := Request("https://cloud.iexapis.com/stable/stock/cmcsa/batch?token=", token+options, false)
 	UKcmcsa := exchangeRate * cmcsa.Quote.LatestPrice
 
 	return events.APIGatewayProxyResponse{
-		Body:       fmt.Sprintf("{Comcast Price: $%.2f, Portfolio: £%s, Comcast Profit: £%.2f}", cmcsa.Quote.LatestPrice, portfolio, UKcmcsa*amount-sellPrice*amount),
+		Body: fmt.Sprintf("{Comcast Price: $%.2f, Portfolio: £%s, Comcast Profit: £%.2f}", cmcsa.Quote.LatestPrice, portfolio, UKcmcsa*amount-sellPrice*amount),
 		StatusCode: 200,
 	}, nil
 }
