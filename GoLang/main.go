@@ -95,10 +95,11 @@ func handler(events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, err
 	exchangeRate, _ := strconv.ParseFloat(stringExchangeRate, 32)
 	portfolio := Request("https://api.coinbase.com", "/v2/accounts/"+acountID, true).Data.Native_Balance.Amount
 	cmcsa := Request("https://cloud.iexapis.com/stable/stock/cmcsa/batch?token=", token+options, false)
-	UKcmcsa := exchangeRate * cmcsa.Quote.LatestPrice
+	UKcmcsaPrice := exchangeRate * cmcsa.Quote.LatestPrice
+	UKcmcsaProft := UKcmcsaPrice*amount - sellPrice*amount
 
 	return events.APIGatewayProxyResponse{
-		Body: fmt.Sprintf("{Comcast Price: $%.2f, Portfolio: £%s, Comcast Profit: £%.2f}", cmcsa.Quote.LatestPrice, portfolio, UKcmcsa*amount-sellPrice*amount),
+		Body:       fmt.Sprintf("{Comcast Price: $%.2f, Portfolio: £%s, Comcast Profit: £%.2f}", cmcsa.Quote.LatestPrice, portfolio, UKcmcsaProft),
 		StatusCode: 200,
 	}, nil
 }
