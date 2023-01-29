@@ -1,9 +1,6 @@
 package main
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -13,10 +10,77 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/alpacahq/alpaca-trade-api-go/v2/marketdata"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/joho/godotenv"
 )
+
+func main() {
+	lambda.Start(handler)
+}
+
+func getStockPrice() float64 {
+	alpacaClient := marketdata.NewClient(marketdata.ClientOpts{
+		ApiKey:    os.Getenv("alpacaKey"),
+		ApiSecret: os.Getenv("alpacaSecret"),
+	})
+
+	alpaca, err := alpacaClient.GetLatestTrade("CMCSA")
+
+	if err != nil {
+		fmt.Printf("Failed to get CMCSA price: %v\n", err)
+	}
+
+	return alpaca.Price
+}
+
+func getExchangeRate() string {
+	client := &http.Client{Timeout: time.Second * 10}
+	req, err := http.NewRequest("GET", "https://api.coinbase.com/v2/exchange-rates?currency=USD", nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	response, err := client.Do(req)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer response.Body.Close()
+
+	body, err := ioutil.ReadAll(response.Body)
+
+	if err != nil {
+		log.Fatal(err)
+		fmt.Println(err)
+	}
+
+	JSON := ExchangeRateResponse{}
+	json.Unmarshal(body, &JSON)
+
+	return JSON.Data.Rates.GBP
+}
+
+func handler(events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	getEnv()
+	var sellPrice, amountOfStock = 27.26, 330.0
+	stringExchangeRate := getExchangeRate()
+	exchangeRate, _ := strconv.ParseFloat(stringExchangeRate, 64)
+
+	cmcsaPrice := getStockPrice()
+
+	gpbCMCSAPrice := exchangeRate * cmcsaPrice
+	UKcmcsaProfit := gpbCMCSAPrice*amountOfStock - sellPrice*amountOfStock
+
+	fmt.Printf("{Comcast Price: $%.2f, Comcast Profit: £%.2f}", cmcsaPrice, UKcmcsaProfit)
+
+	return events.APIGatewayProxyResponse{
+		Body:       fmt.Sprintf("{Comcast Price: $%.2f, Comcast Profit: £%.2f}", cmcsaPrice, UKcmcsaProfit),
+		StatusCode: 200,
+	}, nil
+}
 
 type Response struct {
 	Data struct {
@@ -25,85 +89,56 @@ type Response struct {
 		Native_Balance struct {
 			Amount string `json:"amount"`
 		} `json:"native_balance"`
-		Rates struct {
-			GBP string `json:"GBP"`
-		} `json:"rates"`
 	} `json:"data"`
 	Quote struct {
 		LatestPrice float64 `json:"latestPrice"`
 	} `json:"quote"`
 }
 
+type ExchangeRateResponse struct {
+	Data struct {
+		Rates struct {
+			GBP string `json:"GBP"`
+		} `json:"rates"`
+	} `json:"data"`
+}
+
 func getEnv() {
 	env := os.Getenv("NODE_ENV")
 	if env != "Production" {
-		var err = godotenv.Load("../.env")
+		var err = godotenv.Load(".env")
 		if err != nil {
 			log.Fatalf("Error loading .env file")
 		}
 	}
 }
 
-func Authentication(req *http.Request, params string) {
-	apiSec := os.Getenv("apiSec")
-	timestamp := fmt.Sprintf("%v", time.Now().Unix())
-	apiKey := os.Getenv("apiKey")
-	h := hmac.New(sha256.New, []byte(apiSec))
-	message := timestamp + req.Method + params
-	h.Write([]byte(message))
-	signature := hex.EncodeToString(h.Sum(nil))
+// func Authentication(req *http.Request, params string) {
+// 	apiKey := os.Getenv("apiKey")
+// 	timestamp := fmt.Sprintf("%v", time.Now().Unix())
 
-	req.Header.Add("CB-ACCESS-KEY", apiKey)
-	req.Header.Add("CB-ACCESS-SIGN", signature)
-	req.Header.Add("CB-ACCESS-TIMESTAMP", timestamp)
-	req.Header.Add("CB-VERSION", "2015-07-22")
-}
+// 	now := strconv.FormatInt(time.Now().Unix(), 10)
+// 	sign := createAccessSign(now, "GET", params, "")
 
-func Request(url string, route string, auth bool) Response {
-	client := &http.Client{Timeout: time.Second * 10}
-	req, err := http.NewRequest("GET", url+route, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
+// 	req.Header.Add("CB-ACCESS-KEY", apiKey)
+// 	req.Header.Add("CB-ACCESS-SIGN", sign)
+// 	req.Header.Add("CB-ACCESS-TIMESTAMP", timestamp)
+// 	req.Header.Add("CB-VERSION", "2017-10-07")
+// }
 
-	if auth {
-		Authentication(req, route)
-	}
+// portfolio := Request("https://api.coinbase.com", "/v2/accounts/"+ os.Getenv("accountID"), true).Data.Native_Balance.Amount
+// fmt.Printf("{Comcast Price: $%.2f, Portfolio: £%s, Comcast Profit: £%.2f}", cmcsaPrice, portfolio, UKcmcsaProfit)
 
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-	respJSON := Response{}
-	json.Unmarshal(body, &respJSON)
-	return respJSON
-}
+// func createAccessSign(timestamp, method, requestPath, body string) string {
 
-func handler(events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	getEnv()
-	token := os.Getenv("token")
-	acountID := os.Getenv("acountID")
-	options := "&types=quote,chart"
-
-	var sellPrice, amount = 27.26, 330.0
-	stringExchangeRate := Request("https://api.coinbase.com", "/v2/exchange-rates?currency=USD", true).Data.Rates.GBP
-	exchangeRate, _ := strconv.ParseFloat(stringExchangeRate, 32)
-	portfolio := Request("https://api.coinbase.com", "/v2/accounts/"+acountID, true).Data.Native_Balance.Amount
-	cmcsa := Request("https://cloud.iexapis.com/stable/stock/cmcsa/batch?token=", token+options, false)
-	UKcmcsaPrice := exchangeRate * cmcsa.Quote.LatestPrice
-	UKcmcsaProft := UKcmcsaPrice*amount - sellPrice*amount
-
-	return events.APIGatewayProxyResponse{
-		Body:       fmt.Sprintf("{Comcast Price: $%.2f, Portfolio: £%s, Comcast Profit: £%.2f}", cmcsa.Quote.LatestPrice, portfolio, UKcmcsaProft),
-		StatusCode: 200,
-	}, nil
-}
-
-func main() {
-	lambda.Start(handler)
-}
+// 	key, err := base64.StdEncoding.DecodeString(os.Getenv("apiSec"))
+// 	if err != nil {
+// 		fmt.Println(err)
+// 	}
+// 	mac := hmac.New(sha256.New, key)
+// 	mac.Write([]byte(timestamp + method + requestPath + body))
+// 	sign := mac.Sum(nil)
+// 	signBase64 := make([]byte, base64.StdEncoding.EncodedLen(len(sign)))
+// 	base64.StdEncoding.Encode(signBase64, sign)
+// 	return string(signBase64)
+// }
