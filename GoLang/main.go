@@ -77,7 +77,8 @@ func handler(events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, err
 	fmt.Printf("{Comcast Price: $%.2f, Comcast Profit: £%.2f}", cmcsaPrice, UKcmcsaProfit)
 
 	return events.APIGatewayProxyResponse{
-		Body:       fmt.Sprintf("{Comcast Price: $%.2f, Comcast Profit: £%.2f}", cmcsaPrice, UKcmcsaProfit),
+		Headers:    map[string]string{"Content-Type": "application/json"},
+		Body:       fmt.Sprintf("{\"Comcast_Price\": \"$%.2f\", \"Comcast_Profit\": \"£%.2f\"}", cmcsaPrice, UKcmcsaProfit),
 		StatusCode: 200,
 	}, nil
 }
