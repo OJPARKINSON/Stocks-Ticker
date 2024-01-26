@@ -3,7 +3,7 @@ var crypto = require('crypto');
 if (process.env.NODE_ENV === "Production") require('dotenv').config()
 else require('dotenv').config({ path: '../.env' })
 
-var { apiKey, apiSec, token, acountID } = process.env;
+const { apiKey, apiSec, token, acountID } = process.env;
 
 exports.handler = async (event, context, callback) => {
     const coinbaseRequest = async (path) => {
